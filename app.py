@@ -68,42 +68,21 @@ def play_audio(filename: str, timeout: int = 0) -> None:
         height=0, width=0,
     )
 
-def versus_banner_html(human_name: str, human_img: str, human_score: int, human_active: bool, comp_name: str, comp_img: str, comp_score: int, comp_active: bool, ref_img: str) -> str:
-    h_uri = file_to_data_uri(human_img) or ""
-    c_uri = file_to_data_uri(comp_img) or ""
-    r_uri = file_to_data_uri(ref_img) or ""
-    
-    h_class = " active" if human_active else ""
-    c_class = " active" if comp_active else ""
+def avatar_html(name: str, role: str, image_file: str, accent: str, active: bool) -> str:
+    image_uri = file_to_data_uri(image_file)
+    active_class = " active" if active else ""
 
-    h_markup = f'<img src="{h_uri}">' if h_uri else f'<div class="avatar-fallback">{"".join(p[0] for p in human_name.split()[:2])}</div>'
-    c_markup = f'<img src="{c_uri}">' if c_uri else f'<div class="avatar-fallback">{"".join(p[0] for p in comp_name.split()[:2])}</div>'
-    r_markup = f'<img src="{r_uri}">' if r_uri else f'<div class="avatar-fallback" style="font-size:1.5rem;">SB</div>'
+    if image_uri:
+        image_markup = f'<img class="avatar-img" src="{image_uri}" alt="{name}">'
+    else:
+        initials = "".join(part[0] for part in name.split()[:2])
+        image_markup = f'<div class="avatar-fallback">{initials}</div>'
 
     return f"""
-    <div class="versus-arena">
-        <div class="player-col{{h_class}}" style="--accent:#eab308;">
-            <div class="avatar-ring">{{h_markup}}</div>
-            <div class="player-info">
-                <div class="role">Human</div>
-                <div class="name">{{human_name}}</div>
-                <div class="score-badge">{{human_score}}</div>
-            </div>
-        </div>
-        
-        <div class="referee-col">
-            <div class="ref-avatar-wrapper">{{r_markup}}</div>
-            <div class="vs-text">VS</div>
-        </div>
-        
-        <div class="player-col{{c_class}}" style="--accent:#ef4444;">
-            <div class="avatar-ring">{{c_markup}}</div>
-            <div class="player-info">
-                <div class="role">AI</div>
-                <div class="name">{{comp_name}}</div>
-                <div class="score-badge">{{comp_score}}</div>
-            </div>
-        </div>
+    <div class="profile-card{active_class}" style="--accent:{accent};">
+        <div class="avatar-ring">{image_markup}</div>
+        <div class="profile-role">{role}</div>
+        <div class="profile-name">{name}</div>
     </div>
     """
 
@@ -221,168 +200,160 @@ def inject_styles() -> None:
             margin-bottom: 2rem;
         }
 
-        .title-panel h1 {{
+        .title-panel h1 {
             margin: 0;
-            font-size: clamp(2rem, 6vw, 3.5rem);
+            font-size: 3rem;
             font-weight: 900;
             background: linear-gradient(to right, #3b82f6, #a855f7, #ec4899);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-        }}
+        }
 
-        .title-panel p {{
+        .title-panel p {
             margin: 0.5rem 0 0;
-            font-size: clamp(1rem, 3vw, 1.2rem);
+            font-size: 1.2rem;
             color: #94a3b8;
             font-weight: 600;
-        }}
+        }
 
-        .versus-arena {{
-            display: flex;
-            align-items: stretch;
-            justify-content: center;
+        .profile-card {
             background: #1e293b;
-            border-radius: 20px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            border: 1px solid #334155;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-            gap: 1rem;
-        }}
-
-        .player-col {{
-            flex: 1;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem;
             border-radius: 16px;
-            background: rgba(15, 23, 42, 0.5);
-            border: 2px solid transparent;
-            transition: all 0.3s ease;
-        }}
-
-        .player-col.active {{
-            border-color: var(--accent);
-            background: rgba(255, 255, 255, 0.05);
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
-            transform: translateY(-3px);
-        }}
-
-        .player-col .avatar-ring {{
-            width: clamp(50px, 12vw, 80px);
-            height: clamp(50px, 12vw, 80px);
-            border-radius: 50%;
-            border: 3px solid var(--accent);
-            flex-shrink: 0;
+            border: 2px solid #334155;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
             overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+        }
+
+        .profile-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 6px;
+            background: var(--accent);
+        }
+
+        .profile-card.active {
+            transform: scale(1.02) translateY(-5px);
+            border-color: var(--accent);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5), 0 0 20px rgba(var(--accent-rgb), 0.3);
+        }
+
+        .avatar-ring {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            border: 4px solid var(--accent);
+            overflow: hidden;
             background: #334155;
-        }}
-        
-        .player-col .avatar-ring img {{
-            width: 100%; height: 100%; object-fit: cover;
-        }}
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+        }
 
-        .player-col:last-child {{
-            flex-direction: row-reverse;
-            text-align: right;
-        }}
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
 
-        .player-info {{
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }}
+        .avatar-fallback {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            place-items: center;
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #cbd5e1;
+        }
 
-        .player-info .role {{
-            font-size: clamp(0.7rem, 2vw, 0.8rem);
+        .profile-role {
             color: #94a3b8;
+            font-size: 0.9rem;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 1px;
-        }}
+        }
 
-        .player-info .name {{
-            font-size: clamp(0.9rem, 2.5vw, 1.4rem);
+        .profile-name {
             color: #f8fafc;
+            font-size: 1.4rem;
             font-weight: 900;
-            margin-bottom: 0.3rem;
-            line-height: 1.2;
-        }}
+            margin-top: 0.3rem;
+        }
 
-        .score-badge {{
-            display: inline-block;
-            background: #0f172a;
-            padding: 0.2rem 0.8rem;
-            border-radius: 8px;
-            font-size: clamp(1rem, 2.5vw, 1.2rem);
-            font-weight: 900;
-            color: var(--accent);
-            border: 1px solid #334155;
-            width: fit-content;
-        }}
-        
-        .player-col:last-child .score-badge {{
-            margin-left: auto;
-        }}
-
-        .referee-col {{
+        .referee-panel {
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
-            padding: 0 0.5rem;
-        }}
+            gap: 1rem;
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid #334155;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
 
-        .ref-avatar-wrapper {{
-            width: clamp(40px, 8vw, 60px);
-            height: clamp(40px, 8vw, 60px);
+        .referee-avatar {
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
-            border: 2px solid #94a3b8;
+            border: 3px solid #eab308;
             overflow: hidden;
-            background: #334155;
-            display: grid;
-            place-items: center;
-        }}
-        
-        .ref-avatar-wrapper img {{
-            width: 100%; height: 100%; object-fit: cover;
-        }}
+        }
 
-        .vs-text {{
-            font-size: clamp(1rem, 3vw, 1.5rem);
-            font-weight: 900;
+        .referee-info {
+            text-align: left;
+        }
+
+        .referee-info h3 {
+            margin: 0;
+            color: #f8fafc;
+            font-size: 1.2rem;
+            font-weight: 800;
+        }
+
+        .referee-info p {
+            margin: 0;
             color: #94a3b8;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
-            font-style: italic;
-        }}
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
 
-        @media (max-width: 768px) {{
-            .versus-arena {{
-                flex-direction: column;
-                align-items: center;
-                gap: 1rem;
-                padding: 1rem;
-            }}
-            .player-col {{
-                width: 100%;
-                justify-content: flex-start;
-                text-align: left;
-                padding: 0.75rem;
-            }}
-            .player-col:last-child {{
-                flex-direction: row;
-                text-align: left;
-            }}
-            .player-col:last-child .score-badge {{
-                margin-left: 0;
-            }}
-            .referee-col {{
-                flex-direction: row;
-            }}
-        }}
+        .score-display {
+            display: flex;
+            gap: 1.5rem;
+            margin-left: auto;
+        }
+
+        .score-pill {
+            background: #0f172a;
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #334155;
+            min-width: 80px;
+        }
+
+        .score-pill span {
+            display: block;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .score-pill strong {
+            display: block;
+            font-size: 1.5rem;
+            color: #f8fafc;
+            font-weight: 900;
+        }
 
         .board-shell {
             background: #2563eb;
@@ -394,27 +365,12 @@ def inject_styles() -> None:
             margin: 0 auto;
         }
 
-        .board-grid {{
+        .board-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             grid-template-rows: repeat(6, 1fr);
-            gap: clamp(4px, 2vw, 12px);
-        }}
-
-        /* Force 7-column Streamlit row to never stack vertically */
-        div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) {{
-            flex-wrap: nowrap !important;
-            gap: clamp(2px, 1.5vw, 12px) !important;
-        }}
-        div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) > div[data-testid="column"] {{
-            min-width: 0 !important;
-            width: calc(100% / 7) !important;
-            flex: 1 1 0% !important;
-        }}
-        .stButton button {{
-            padding-left: 0 !important;
-            padding-right: 0 !important;
-        }}
+            gap: 12px;
+        }
 
         .disc {
             width: clamp(35px, 5vw, 65px);
@@ -539,45 +495,89 @@ st.markdown("</div>", unsafe_allow_html=True)
 computer_score, human_score = solver.current_scores(st.session_state.board)
 heuristic_value = st.session_state.heuristic_val
 
-st.markdown(
-    versus_banner_html(
-        human_name="Eissa Elwazaan",
-        human_img=ASSETS["human_image"],
-        human_score=human_score,
-        human_active=(st.session_state.turn_label == "Eissa Elwazaan"),
-        comp_name="Khamis Kaka",
-        comp_img=ASSETS["ai_image"],
-        comp_score=computer_score,
-        comp_active=(st.session_state.turn_label == "Khamis Kaka"),
-        ref_img=ASSETS["referee_image"]
-    ),
-    unsafe_allow_html=True
-)
+# Main Layout
+left_col, center_col, right_col = st.columns([1, 2.5, 1], gap="medium")
 
-# Board drop buttons
-st.markdown('<div style="width: fit-content; margin: 0 auto; margin-bottom: 0.5rem;">', unsafe_allow_html=True)
-drop_cols = st.columns(solver.COLS)
-clicked_column = None
-for col, d_col in enumerate(drop_cols):
-    with d_col:
-        is_disabled = st.session_state.game_over or st.session_state.turn_label != "Eissa Elwazaan"
-        if st.button("⬇️", key=f"drop_{col}", use_container_width=True, disabled=is_disabled):
-            clicked_column = col
-st.markdown('</div>', unsafe_allow_html=True)
+with left_col:
+    st.markdown(
+        avatar_html(
+            "Eissa Elwazaan",
+            "Human Player",
+            ASSETS["human_image"],
+            "#eab308",
+            st.session_state.turn_label == "Eissa Elwazaan",
+        ),
+        unsafe_allow_html=True,
+    )
 
-# Render board
-st.markdown(board_html(st.session_state.board), unsafe_allow_html=True)
+with right_col:
+    st.markdown(
+        avatar_html(
+            "Khamis Kaka",
+            "AI Opponent",
+            ASSETS["ai_image"],
+            "#ef4444",
+            st.session_state.turn_label == "Khamis Kaka",
+        ),
+        unsafe_allow_html=True,
+    )
 
-# Status Panel
-st.markdown(
-    f"""
-    <div class="status-panel">
-        <h2>{st.session_state.status}</h2>
-        <p>Last Heuristic Value evaluated: <strong>{heuristic_value}</strong></p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+with center_col:
+    # Referee & Scoreboard
+    referee_img = file_to_data_uri(ASSETS["referee_image"]) or ""
+    
+    if referee_img:
+        referee_html = f'<img src="{referee_img}" class="referee-avatar" alt="Sebaei">'
+    else:
+        referee_html = f'<div class="referee-avatar" style="background:#334155; display:grid; place-items:center; font-weight:900;">SB</div>'
+        
+    st.markdown(
+        f"""
+        <div class="referee-panel">
+            {referee_html}
+            <div class="referee-info">
+                <h3>Sebaei</h3>
+                <p>Official Referee</p>
+            </div>
+            <div class="score-display">
+                <div class="score-pill">
+                    <span>Eissa</span>
+                    <strong style="color: #fde047;">{human_score}</strong>
+                </div>
+                <div class="score-pill">
+                    <span>Khamis</span>
+                    <strong style="color: #fca5a5;">{computer_score}</strong>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Board drop buttons
+    st.markdown('<div style="width: fit-content; margin: 0 auto; margin-bottom: 0.5rem;">', unsafe_allow_html=True)
+    drop_cols = st.columns(solver.COLS)
+    clicked_column = None
+    for col, d_col in enumerate(drop_cols):
+        with d_col:
+            is_disabled = st.session_state.game_over or st.session_state.turn_label != "Eissa Elwazaan"
+            if st.button("⬇️", key=f"drop_{col}", use_container_width=True, disabled=is_disabled):
+                clicked_column = col
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Render board
+    st.markdown(board_html(st.session_state.board), unsafe_allow_html=True)
+
+    # Status Panel
+    st.markdown(
+        f"""
+        <div class="status-panel">
+            <h2>{st.session_state.status}</h2>
+            <p>Last Heuristic Value evaluated: <strong>{heuristic_value}</strong></p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 if clicked_column is not None:
     handle_human_move(clicked_column)
