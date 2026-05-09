@@ -116,6 +116,7 @@ def reset_game() -> None:
     st.session_state.turn_label = "Eissa Elwazaan"
     st.session_state.heuristic_val = 0
     st.session_state.audio_to_play = None
+    st.session_state.show_loss_screen = False
 
 def ensure_state() -> None:
     if "board" not in st.session_state:
@@ -138,7 +139,7 @@ def finish_if_full(note: str = "") -> bool:
     
     comp_score, human_score = solver.current_scores(st.session_state.board)
     if comp_score > human_score:
-        st.session_state.audio_to_play = ASSETS["lose_audio"]
+        st.session_state.show_loss_screen = True
         
     return True
 
@@ -592,6 +593,96 @@ if st.session_state.get("audio_to_play"):
         
     audio_played = st.session_state.audio_to_play
     st.session_state.audio_to_play = None
+
+if st.session_state.get("show_loss_screen"):
+    video_uri = file_to_data_uri(ASSETS["lose_audio"])
+    st.markdown(
+        f"""
+        <style>
+            .loss-overlay {{
+                position: fixed;
+                top: 0; left: 0; width: 100vw; height: 100vh;
+                background: rgba(15, 23, 42, 0.95);
+                z-index: 999999;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                animation: fadeIn 1s ease-in-out;
+            }}
+            .loss-overlay h1 {{
+                font-size: clamp(2.5rem, 6vw, 4rem);
+                color: #ef4444;
+                margin: 0 0 1rem 0;
+                text-transform: uppercase;
+                font-weight: 900;
+                text-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
+                animation: shake 0.5s infinite;
+                text-align: center;
+            }}
+            .loss-video-container {{
+                width: 90%;
+                max-width: 700px;
+                max-height: 60vh;
+                border: 4px solid #ef4444;
+                border-radius: 16px;
+                overflow: hidden;
+                box-shadow: 0 0 40px rgba(239, 68, 68, 0.5);
+                background: black;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }}
+            .loss-video-container video {{
+                width: 100%;
+                max-height: 60vh;
+                object-fit: contain;
+                display: block;
+            }}
+            .close-loss-screen {{
+                margin-top: 1.5rem;
+                padding: 1rem 2rem;
+                background: #ef4444;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 1.2rem;
+                font-weight: bold;
+                cursor: pointer;
+                transition: background 0.2s;
+            }}
+            .close-loss-screen:hover {{
+                background: #dc2626;
+            }}
+            @keyframes fadeIn {{
+                from {{ opacity: 0; }}
+                to {{ opacity: 1; }}
+            }}
+            @keyframes shake {{
+                0% {{ transform: translate(1px, 1px) rotate(0deg); }}
+                10% {{ transform: translate(-1px, -2px) rotate(-1deg); }}
+                20% {{ transform: translate(-3px, 0px) rotate(1deg); }}
+                30% {{ transform: translate(3px, 2px) rotate(0deg); }}
+                40% {{ transform: translate(1px, -1px) rotate(1deg); }}
+                50% {{ transform: translate(-1px, 2px) rotate(-1deg); }}
+                60% {{ transform: translate(-3px, 1px) rotate(0deg); }}
+                70% {{ transform: translate(3px, 1px) rotate(-1deg); }}
+                80% {{ transform: translate(-1px, -1px) rotate(1deg); }}
+                90% {{ transform: translate(1px, 2px) rotate(0deg); }}
+                100% {{ transform: translate(1px, -2px) rotate(-1deg); }}
+            }}
+        </style>
+        <div class="loss-overlay" id="loss-screen">
+            <h1>EISSA ELWAZAAN LOST!</h1>
+            <div class="loss-video-container">
+                <video src="{video_uri}" autoplay playsinline controls></video>
+            </div>
+            <button class="close-loss-screen" onclick="document.getElementById('loss-screen').style.display='none'">Close</button>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 # AI logic execution separated to allow frontend to render Eissa's move first
 if st.session_state.turn_label == "Khamis Kaka" and not st.session_state.game_over:
